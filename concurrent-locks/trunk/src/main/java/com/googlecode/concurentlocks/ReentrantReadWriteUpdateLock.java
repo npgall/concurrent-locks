@@ -117,7 +117,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
             LockState threadState = threadLockState.get();            
-            boolean acquired =  sequentialTryLock(mutex, readWriteLock.readLock(), time, unit);
+            boolean acquired = sequentialTryLock(mutex, readWriteLock.readLock(), time, unit);
             if (acquired) {
                 threadState.updateLocksHeld++;
             }
@@ -249,7 +249,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
             // At this point current thread holds the only write lock and the only update lock.
 
             // Release the write lock...
-            readWriteLock.writeLock().unlock();  // this is the only place where write lock is released, and at this point current thread holds it and the single update lock
+            readWriteLock.writeLock().unlock();
             // Re-acquire the read lock to revert to a standard update lock again,
             // which is guaranteed to succeed immediately because no other threads hold the write lock...
             readWriteLock.readLock().lock();
