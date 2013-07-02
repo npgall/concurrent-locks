@@ -9,13 +9,13 @@ import java.util.concurrent.locks.*;
 public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
     final ReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
-    final Lock mutex = new ReentrantLock();
+    final Lock updateMutex = new ReentrantLock();
 
     final ReadLock readLock = new ReadLock();
     final UpdateLock updateLock = new UpdateLock();
     final WriteLock writeLock = new WriteLock();
 
-    static class LockState { int readLocksHeld, updateLocksHeld, writeLocksHeld; }
+    static class LockState { int readHoldCount, updateHoldCount, writeHoldCount; }
 
     final ThreadLocal<LockState> threadLockState = new ThreadLocal<LockState>() {
         @Override
@@ -45,41 +45,41 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
         public void lock() {
             LockState threadState = threadLockState.get();            
             readWriteLock.readLock().lock();
-            threadState.readLocksHeld++;
+            threadState.readHoldCount++;
         }
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
             LockState threadState = threadLockState.get();                        
             readWriteLock.readLock().lockInterruptibly();
-            threadState.readLocksHeld++;
+            threadState.readHoldCount++;
         }
 
         @Override
         public boolean tryLock() {
             LockState threadState = threadLockState.get();                        
-            boolean acquired = readWriteLock.readLock().tryLock();
-            if (acquired) {
-                threadState.readLocksHeld++;
+            if (readWriteLock.readLock().tryLock()) {
+                threadState.readHoldCount++;
+                return true;
             }
-            return acquired;
+            return false;
         }
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
             LockState threadState = threadLockState.get();                        
-            boolean acquired = readWriteLock.readLock().tryLock(time, unit);
-            if (acquired) {
-                threadState.readLocksHeld++;
+            if (readWriteLock.readLock().tryLock(time, unit)) {
+                threadState.readHoldCount++;
+                return true;
             }
-            return acquired;
+            return false;
         }
 
         @Override
         public void unlock() {
             LockState threadState = threadLockState.get();
             readWriteLock.readLock().unlock();
-            threadState.readLocksHeld--;
+            threadState.readHoldCount--;
         }
 
         @Override
@@ -92,48 +92,58 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public void lock() {
-            LockState threadState = threadLockState.get();            
-            sequentialLock(mutex, readWriteLock.readLock());
-            threadState.updateLocksHeld++;
+            LockState threadState = threadLockState.get();
+            ensureNotHoldingReadLock(threadState);
+            updateMutex.lock();
+            threadState.updateHoldCount++;
         }
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
-            LockState threadState = threadLockState.get();            
-            sequentialLockInterruptibly(mutex, readWriteLock.readLock());
-            threadState.updateLocksHeld++;
+            LockState threadState = threadLockState.get();
+            ensureNotHoldingReadLock(threadState);
+            updateMutex.lockInterruptibly();
+            threadState.updateHoldCount++;
         }
 
         @Override
         public boolean tryLock() {
-            LockState threadState = threadLockState.get();            
-            boolean acquired = sequentialTryLock(mutex, readWriteLock.readLock());
-            if (acquired) {
-                threadState.updateLocksHeld++;
+            LockState threadState = threadLockState.get();
+            ensureNotHoldingReadLock(threadState);
+            if (updateMutex.tryLock()) {
+                threadState.updateHoldCount++;
+                return true;
             }
-            return acquired;
+            return false;
         }
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-            LockState threadState = threadLockState.get();            
-            boolean acquired = sequentialTryLock(mutex, readWriteLock.readLock(), time, unit);
-            if (acquired) {
-                threadState.updateLocksHeld++;
+            LockState threadState = threadLockState.get();
+            ensureNotHoldingReadLock(threadState);
+            if (updateMutex.tryLock(time, unit)) {
+                threadState.updateHoldCount++;
+                return true;
             }
-            return acquired;
+            return false;
         }
 
         @Override
         public void unlock() {
             LockState threadState = threadLockState.get();            
-            sequentialUnlock(readWriteLock.readLock(), mutex);
-            threadState.updateLocksHeld--;
+            updateMutex.unlock();
+            threadState.updateHoldCount--;
         }
 
         @Override
         public Condition newCondition() {
             throw new UnsupportedOperationException();
+        }
+
+        void ensureNotHoldingReadLock(LockState threadState) {
+            if (threadState.readHoldCount > 0) {
+                throw new IllegalStateException("Cannot acquire update lock, as this thread previously acquired and must first release the read lock");
+            }
         }
     }
 
@@ -142,185 +152,135 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
         @Override
         public void lock() {
             LockState threadState = threadLockState.get();
-            if (threadState.updateLocksHeld <= 0) {
-                throw new IllegalStateException("Cannot upgrade to write lock, this thread does not hold and must first acquire an update lock");
-            }
-            // At this point current thread holds the only update lock.
+            ensureNotHoldingReadLock(threadState);
 
-            // Release read lock; update lock still prevents other threads from getting here to steal the write lock...
-            readWriteLock.readLock().unlock();
-            // Only this thread can request write lock so no other thread could have stolen it,
-            // but it might block until other readers finish...
+            // Acquire UPDATE lock again, even if calling thread might already hold it,
+            // to allow threads to go from both NONE -> WRITE, in addition to UPDATE -> WRITE...
+            updateMutex.lock();
+            threadState.updateHoldCount++;
+            // At this point current thread is the only thread to hold the UPDATE lock.
+
+            // Only this thread can request WRITE lock since it is the only one to hold the UPDATE lock,
+            // but we might block here until other threads holding READ locks finish...
             readWriteLock.writeLock().lock();
-            threadState.writeLocksHeld++;
+            threadState.writeHoldCount++;
         }
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
             LockState threadState = threadLockState.get();
-            if (threadState.updateLocksHeld <= 0) {
-                throw new IllegalStateException("Cannot upgrade to write lock, this thread does not hold and must first acquire an update lock");
-            }
-            // At this point current thread holds the only update lock.
+            ensureNotHoldingReadLock(threadState);
 
-            // Release read lock; update lock still prevents other threads from getting here to steal the write lock...
-            readWriteLock.readLock().unlock();
+            // Acquire UPDATE lock again, even if calling thread might already hold it,
+            // to allow threads to go from both NONE -> WRITE, in addition to UPDATE -> WRITE...
+            updateMutex.lockInterruptibly();
+            threadState.updateHoldCount++;
+            // At this point current thread is the only thread to hold the UPDATE lock.
+
             try {
-                // Only this thread can request write lock so no other thread could have stolen it,
-                // but it might block until other readers finish...
-                readWriteLock.writeLock().lockInterruptibly();
+                // Only this thread can request WRITE lock since it is the only one to hold the UPDATE lock,
+                // but we might block here until other threads holding READ locks finish...
+                readWriteLock.writeLock().lockInterruptibly();  // TODO validate interrupt handling
             }
             catch (InterruptedException interruptedException) {
-                // Interrupted before write lock could be obtained.
-                // Roll back: re-acquire the read lock, which is guaranteed to succeed immediately
-                // because no other threads hold the write lock...
-                readWriteLock.readLock().lock();
+                // Roll back: interrupted while waiting for the WRITE lock, so release the UPDATE lock...
+                updateMutex.unlock();
+                threadState.updateHoldCount--;
                 throw interruptedException;
             }
-            threadState.writeLocksHeld++;
+            threadState.writeHoldCount++;
         }
 
         @Override
         public boolean tryLock() {
             LockState threadState = threadLockState.get();
-            if (threadState.updateLocksHeld <= 0) {
-                throw new IllegalStateException("Cannot upgrade to write lock, this thread does not hold and must first acquire an update lock");
-            }
-            // At this point current thread holds the only update lock.
+            ensureNotHoldingReadLock(threadState);
 
-            // Release read lock; update lock still prevents other threads from getting here to steal the write lock...
-            readWriteLock.readLock().unlock();
-            // Only this thread can request write lock so no other thread could have stolen it,
-            // but other readers may prevent its immediate acquisition...
-            boolean acquired = readWriteLock.writeLock().tryLock();
-            if (!acquired) {
-                // Other readers must have prevented the immediate acquisition of write lock.
-                // Roll back: re-acquire the read lock, which is guaranteed to succeed immediately
-                // because no other threads hold the write lock...
-                readWriteLock.readLock().lock();
+            // Acquire UPDATE lock again, even if calling thread might already hold it,
+            // to allow threads to go from both NONE -> WRITE, in addition to UPDATE -> WRITE...
+            boolean updateAcquired = updateMutex.tryLock();
+            if (!updateAcquired) {
+                return false;
             }
-            else {
-                threadState.writeLocksHeld++;
+            threadState.updateHoldCount++;
+            // At this point current thread is the only thread to hold the UPDATE lock.
+
+            // Only this thread can request WRITE lock since it is the only one to hold the UPDATE lock,
+            // but we might fail here if other threads hold READ locks...
+            boolean writeAcquired = readWriteLock.writeLock().tryLock();
+            if (!writeAcquired) {
+                // Roll back: failed to obtain WRITE lock due to other threads holding READ locks,
+                // so release the UPDATE lock...
+                updateMutex.unlock();
+                threadState.updateHoldCount--;
+                return false;
             }
-            return acquired;
+            threadState.writeHoldCount++;
+            return true;
         }
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
             LockState threadState = threadLockState.get();
-            if (threadState.updateLocksHeld <= 0) {
-                throw new IllegalStateException("Cannot upgrade to write lock, this thread does not hold and must first acquire an update lock");
-            }
-            // At this point current thread holds the only update lock.
+            ensureNotHoldingReadLock(threadState);
 
-            // Release read lock; update lock still prevents other threads from getting here to steal the write lock...
-            readWriteLock.readLock().unlock();
-            boolean acquired;
+            long startTime = System.nanoTime();
+            // Acquire UPDATE lock again, even if calling thread might already hold it,
+            // to allow threads to go from both NONE -> WRITE, in addition to UPDATE -> WRITE...
+            boolean updateAcquired = updateMutex.tryLock(time, unit);
+            if (!updateAcquired) {
+                return false;
+            }
+            threadState.updateHoldCount++;
+            // At this point current thread is the only thread to hold the UPDATE lock.
+
+            // Calculate time remaining within the timeout supplied...
+            long elapsedTime = System.nanoTime() - startTime;
+            long remainingTime = unit.toNanos(time) - elapsedTime;
+
+            // Only this thread can request WRITE lock since it is the only one to hold the UPDATE lock,
+            // but we might fail here if other threads hold READ locks or if interrupted while waiting...
+            boolean writeAcquired;
             try {
-                // Only this thread can request write lock so no other thread could have stolen it,
-                // but other readers may prevent its immediate acquisition...
-                acquired = readWriteLock.writeLock().tryLock(time, unit);
+                writeAcquired = readWriteLock.writeLock().tryLock(remainingTime, TimeUnit.NANOSECONDS); // TODO validate interrupt handling
             }
             catch (InterruptedException interruptedException) {
-                // Interrupted before timeout occurred.
-                // Roll back: re-acquire the read lock, which is guaranteed to succeed immediately
-                // because no other threads hold the write lock...
-                readWriteLock.readLock().lock();
+                // Roll back: interrupted while waiting for the WRITE lock, so release the UPDATE lock...
+                updateMutex.unlock();
+                threadState.updateHoldCount--;
                 throw interruptedException;
             }
-            if (!acquired) {
-                // Timeout occurred. Other readers must have prevented the acquisition of write lock within timeout.
-                // Roll back: re-acquire the read lock, which is guaranteed to succeed immediately
-                // because no other threads hold the write lock...
-                readWriteLock.readLock().lock();
+            if (!writeAcquired) {
+                // Roll back: failed to obtain WRITE lock due to other threads holding READ locks,
+                // so release the UPDATE lock...
+                updateMutex.unlock();
+                threadState.updateHoldCount--;
+                return false;
             }
-            else {
-                threadState.writeLocksHeld++;
-            }
-            return acquired;
+            threadState.writeHoldCount++;
+            return true;
         }
 
         @Override
         public void unlock() {
             LockState threadState = threadLockState.get();
-            if (threadState.writeLocksHeld <= 0) {
-                throw new IllegalStateException("Cannot downgrade to update lock, this thread does not hold a write lock");
-            }
-            // At this point current thread holds the only write lock and the only update lock.
-
-            // Release the write lock...
+            // Release the WRITE lock...
             readWriteLock.writeLock().unlock();
-            // Re-acquire the read lock to revert to a standard update lock again,
-            // which is guaranteed to succeed immediately because no other threads hold the write lock...
-            readWriteLock.readLock().lock();
-            threadState.writeLocksHeld--;
+            threadState.writeHoldCount--;
+            // Release the UPDATE lock...
+            updateMutex.unlock();
+            threadState.updateHoldCount--;
         }
 
         @Override
         public Condition newCondition() {
             throw new UnsupportedOperationException();
         }
-    }
 
-
-    // ******************************
-    // ***** Utility methods... *****
-    // ******************************
-
-    static void sequentialLock(Lock lock1, Lock lock2) {
-        lock1.lock();
-        lock2.lock();
-    }
-
-    static void sequentialLockInterruptibly(Lock lock1, Lock lock2) throws InterruptedException {
-        lock1.lockInterruptibly();
-        try {
-            lock2.lockInterruptibly();  // TODO validate interrupt handling
+        void ensureNotHoldingReadLock(LockState threadState) {
+            if (threadState.readHoldCount > 0) {
+                throw new IllegalStateException("Cannot acquire write lock, as this thread previously acquired and must first release the read lock");
+            }
         }
-        catch (InterruptedException interruptedException) {
-            lock1.unlock();
-            throw interruptedException;
-        }
-    }
-
-    static boolean sequentialTryLock(Lock lock1, Lock lock2) {
-        boolean lock1Acquired = lock1.tryLock();
-        if (!lock1Acquired) {
-            return false;
-        }
-        boolean lock2Acquired = lock2.tryLock();
-        if (!lock2Acquired) {
-            lock1.unlock();
-            return false;
-        }
-        return true;
-    }
-
-    static boolean sequentialTryLock(Lock lock1, Lock lock2, long time, TimeUnit unit) throws InterruptedException {
-        long startTime = System.nanoTime();
-        boolean lock1Acquired = lock1.tryLock(time, unit);
-        if (!lock1Acquired) {
-            return false;
-        }
-        long elapsedTime = System.nanoTime() - startTime;
-        long remainingTime = unit.toNanos(time) - elapsedTime;
-        boolean lock2Acquired;
-        try {
-            lock2Acquired = lock2.tryLock(remainingTime, TimeUnit.NANOSECONDS); // TODO validate interrupt handling
-        }
-        catch (InterruptedException interruptedException) {
-            lock1.unlock();
-            throw interruptedException;
-        }
-        if (!lock2Acquired) {
-            lock1.unlock();
-            return false;
-        }
-        return true;
-    }
-
-    static void sequentialUnlock(Lock lock1, Lock lock2) {
-        lock1.unlock();
-        lock2.unlock();
     }
 }
