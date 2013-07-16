@@ -35,7 +35,6 @@ public class CompositeLock implements Lock {
     public void lockInterruptibly() throws InterruptedException {
         Locks.lockInterruptiblyAll(locks);
     }
-
     @Override
     public boolean tryLock() {
         return Locks.tryLockAll(locks);
