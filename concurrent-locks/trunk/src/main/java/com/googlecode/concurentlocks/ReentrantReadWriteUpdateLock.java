@@ -53,21 +53,21 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public void lock() {
-            beforeAcquire();
+            validatePreconditions();
             backingLock.lock();
             holdCount().value++;
         }
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
-            beforeAcquire();
+            validatePreconditions();
             backingLock.lockInterruptibly();
             holdCount().value++;
         }
 
         @Override
         public boolean tryLock() {
-            beforeAcquire();
+            validatePreconditions();
             if (backingLock.tryLock()) {
                 holdCount().value++;
                 return true;
@@ -77,7 +77,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-            beforeAcquire();
+            validatePreconditions();
             if (backingLock.tryLock(time, unit)) {
                 holdCount().value++;
                 return true;
@@ -96,7 +96,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
             throw new UnsupportedOperationException();
         }
 
-        abstract void beforeAcquire();
+        abstract void validatePreconditions();
     }
 
     class ReadLock extends HoldCountLock {
@@ -105,7 +105,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
             super(readWriteLock.readLock());
         }
 
-        void beforeAcquire() {
+        void validatePreconditions() {
             if (updateLock.holdCount().value > 0) {
                 throw new IllegalStateException("Cannot acquire read lock, as this thread previously acquired and must first release the update lock");
             }
@@ -118,7 +118,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
             super(updateMutex);
         }
 
-        void beforeAcquire() {
+        void validatePreconditions() {
             if (readLock.holdCount().value > 0) {
                 throw new IllegalStateException("Cannot acquire update lock, as this thread previously acquired and must first release the read lock");
             }
@@ -129,7 +129,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public void lock() {
-            beforeAcquire();
+            validatePreconditions();
             // Acquire UPDATE lock again, even if calling thread might already hold it.
             // This allow threads to go from both NONE -> WRITE and from UPDATE -> WRITE.
             // This also ensures that only the thread holding the single UPDATE lock,
@@ -139,19 +139,19 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public void lockInterruptibly() throws InterruptedException {
-            beforeAcquire();
+            validatePreconditions();
             Locks.lockInterruptiblyAll(updateLock, readWriteLock.writeLock());
         }
 
         @Override
         public boolean tryLock() {
-            beforeAcquire();
+            validatePreconditions();
             return Locks.tryLockAll(updateLock, readWriteLock.writeLock());
         }
 
         @Override
         public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-            beforeAcquire();
+            validatePreconditions();
             return Locks.tryLockAll(time, unit, updateLock, readWriteLock.writeLock());
         }
 
@@ -165,7 +165,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
             throw new UnsupportedOperationException();
         }
 
-        void beforeAcquire() {
+        void validatePreconditions() {
             if (readLock.holdCount().value > 0) {
                 throw new IllegalStateException("Cannot acquire write lock, as this thread previously acquired and must first release the read lock");
             }
