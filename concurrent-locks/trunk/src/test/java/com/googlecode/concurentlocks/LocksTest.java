@@ -309,7 +309,7 @@ public class LocksTest {
         }
 
         @Override
-        void beforeAcquire() {
+        void validatePreconditions() {
             // No op
         }
     }

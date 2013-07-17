@@ -81,7 +81,7 @@ public class CompositeLockTest {
         }
 
         @Override
-        void beforeAcquire() {
+        void validatePreconditions() {
             // No op
         }
     }
