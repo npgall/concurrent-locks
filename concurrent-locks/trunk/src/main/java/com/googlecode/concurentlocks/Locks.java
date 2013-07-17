@@ -126,6 +126,8 @@ public class Locks {
                         ? limitNanos // No need to calculate remaining time in first iteration
                         : limitNanos - (System.nanoTime() - startNanos); // recalculate in subsequent iterations
 
+                // Note if remaining time is <= 0, we still try to obtain additional locks, supplying zero or negative
+                // timeouts to those locks, which should treat it as a non-blocking tryLock() per API docs...
                 success = lock.tryLock(remainingNanos, TimeUnit.NANOSECONDS);
                 if (success) {
                     stack.push(lock);
