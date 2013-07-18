@@ -4,7 +4,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 /**
- * Extends the JDK {@link ReadWriteLock}, providing an update lock in addition to the read lock and the write lock.
+ * Extends the JDK {@link ReadWriteLock}, providing an <b>update lock</b> in addition to the read lock and the write
+ * lock.
  * <p/>
  * The {@link #updateLock update lock} supports read-only operations and can coexist with multiple
  * {@link #readLock read lock}s held simultaneously by other reader threads. However it may also be upgraded from
