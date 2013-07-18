@@ -1,4 +1,5 @@
 #summary Maven coordinates and download statistics
+#labels Featured
 
 _Access to Maven Central for this project is still pending. This page will be updated when access is granted._
 
