@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.*;
 
 /**
- * An implementation of {@link ReadWriteUpdateLock}, thus extending the functionality of the JDK
+ * An implementation of {@link ReadWriteUpdateLock}, extending the functionality of the JDK
  * {@link ReentrantReadWriteLock} with an <b>update lock</b> in addition to the read and write lock, supporting upgrade
  * from read-only operation to writing status, and downgrade again.
  *
