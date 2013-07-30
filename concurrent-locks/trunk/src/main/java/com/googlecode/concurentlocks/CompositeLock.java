@@ -58,6 +58,6 @@ public class CompositeLock implements Lock {
 
     @Override
     public Condition newCondition() {
-        throw new UnsupportedOperationException("Not implemented");
+        throw new UnsupportedOperationException("This lock does not support conditions");
     }
 }

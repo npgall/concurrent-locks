@@ -139,7 +139,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public Condition newCondition() {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("This lock does not support conditions");
         }
 
         abstract void validatePreconditions();
@@ -208,7 +208,7 @@ public class ReentrantReadWriteUpdateLock implements ReadWriteUpdateLock {
 
         @Override
         public Condition newCondition() {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("This lock does not support conditions");
         }
 
         void validatePreconditions() {
