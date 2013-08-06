@@ -3,7 +3,7 @@
 
   <groupId>com.googlecode.concurrent-locks</groupId>
   <artifactId>concurrent-locks</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>concurrent-locks</name>
@@ -21,9 +21,9 @@
         </license>
     </licenses>
     <scm>
-        <url>http://concurrent-locks.googlecode.com/svn/concurrent-locks/tags/1.0.0</url>
-        <connection>scm:svn:http://concurrent-locks.googlecode.com/svn/concurrent-locks/tags/1.0.0</connection>
-        <developerConnection>scm:svn:https://concurrent-locks.googlecode.com/svn/concurrent-locks/tags/1.0.0</developerConnection>
+        <url>http://concurrent-locks.googlecode.com/svn/concurrent-locks/trunk/</url>
+        <connection>scm:svn:http://concurrent-locks.googlecode.com/svn/concurrent-locks/trunk/</connection>
+        <developerConnection>scm:svn:https://concurrent-locks.googlecode.com/svn/concurrent-locks/trunk/</developerConnection>
         <!--
             Note: When performing a release for the first time, run the following
             and and choose to permanently accept Google's server certificate:
