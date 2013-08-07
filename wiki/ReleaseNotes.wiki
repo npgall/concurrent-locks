@@ -1,7 +1,6 @@
 #summary Release notes for official releases of the concurrent-locks library
 
-===Version 0.9.0 - 2013-07-??===
- * _Pending access to Maven Central_
- * First public release
+===Version 1.0.0 - 2013-08-06===
+ * Deployed to Maven Central
  * `ReentrantReadWriteUpdateLock`, `CompositeLock`, `Locks` utility class
  * Full test coverage
