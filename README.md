@@ -12,7 +12,7 @@ A lock spanning a group of backing locks.
 The Locks class provides utility methods which mimic the JDK `java.util.concurrent.locks.Lock` API, but instead apply those operations on groups of backing locks.
 
 ---
-* You can find the latest source code for Concurrent-Locks here on GitHub.
-* The current release of Concurrent-Locks is 1.0.0 (as at August 2015).
-* Documentation is currently being transferred here to GitHub; and in the meantime you can find full documentation for Concurrent-Trees at its previous home on Google Code: http://code.google.com/p/concurrent-locks/
-* The Concurrent-Trees discussion forum can be found at: http://groups.google.com/group/concurrent-locks-discuss
+* **Documentation** is currently being transferred here to GitHub; and in the meantime you can find full documentation for Concurrent-Trees at its previous home on Google Code: http://code.google.com/p/concurrent-locks/
+* You can find the latest **source code** for Concurrent-Locks here on GitHub.
+* The current **release** of Concurrent-Locks is 1.0.0 (as at August 2015).
+* The Concurrent-Trees **discussion forum** can be found at: http://groups.google.com/group/concurrent-locks-discuss
