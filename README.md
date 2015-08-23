@@ -3,7 +3,7 @@ Welcome to the new home of Concurrent-Locks!
 *Additional Lock implementations for Java, extending the base functionality provided by the JDK.*
 
 **ReentrantReadWriteUpdateLock**
-Similar to ReentrantReadWriteLock in the JDK, but in addition to providing a read lock and a write lock, it provides a third option: an update lock. Unlike the JDK, this supports read-before-write data access patterns efficiently.
+Similar to ReentrantReadWriteLock in the JDK, but in addition to providing a read lock and a write lock, it provides a third option: an update lock. Unlike the JDK, this supports read-before-write data access patterns efficiently. *See the link below for further documentation.*
 
 **CompositeLock**
 A lock spanning a group of backing locks.
