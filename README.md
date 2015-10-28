@@ -2,10 +2,10 @@
 
 This project provides additional Lock implementations for Java.
 
-The following locks and utilities are provided, all with 100% test coverage.
+The following locks and utilities are provided.
 
 # ReentrantReadWriteUpdateLock #
-The [ReentrantReadWriteUpdateLock](http://htmlpreview.github.io/?http://raw.githubusercontent.com/npgall/concurrent-locks/master/documentation/javadoc/apidocs/com/googlecode/concurentlocks/ReentrantReadWriteUpdateLock.html) in this project, is like the [ReentrantReadWriteLock](http://docs.oracle.com/javase/6/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html) counterpart in the JDK, but in addition to providing a _read_ lock and a _write_ lock, it provides a third option: an _update_ lock.
+The [ReentrantReadWriteUpdateLock](http://htmlpreview.github.io/?http://raw.githubusercontent.com/npgall/concurrent-locks/master/documentation/javadoc/apidocs/com/googlecode/concurentlocks/ReentrantReadWriteUpdateLock.html) provided in this project, is like the [ReentrantReadWriteLock](http://docs.oracle.com/javase/6/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html) counterpart in the JDK, but in addition to providing a _read_ lock and a _write_ lock, it provides a third option: an _update_ lock.
 
 Unlike the JDK, this efficiently supports **_read-before-write_ data access patterns**.
 
