@@ -122,7 +122,7 @@ Provides methods:<br>
 <h1>Usage in Maven and Non-Maven Projects</h1>
 
 Concurrent-Locks is in Maven Central, and can be added to a Maven project as follows:
-```
+```xml
 <dependency>
     <groupId>com.googlecode.concurrent-locks</groupId>
     <artifactId>concurrent-locks</artifactId>
