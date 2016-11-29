@@ -51,7 +51,7 @@ The following table shows the situations in which the Read-Write-Update lock pro
 |4. Release write lock, optionally release update lock|<font color='green'>YES</font> |
 
 **Example Usage - Writing Threads**
-```
+```java
 final ReadWriteUpdateLock readWriteUpdateLock = new ReentrantReadWriteUpdateLock();
 
 public void updateDocumentIfNecessary() {
@@ -80,7 +80,7 @@ public void updateDocumentIfNecessary() {
 ```
 
 **Example Usage - Reading Threads**
-```
+```java
 public Document readDocument() {
     readWriteUpdateLock.readLock().lock(); // blocks others from acquiring write lock
     try {
