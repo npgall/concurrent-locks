@@ -94,7 +94,7 @@ public Document readDocument() {
 
 **Supported Lock Acquisition Paths**
 
-|<sub> **Lock Type** </sub>|<sub> **Associated Permissions** </sub>|<sub> **Permitted acquisitions** </sub>|<sub> **Permited downgrades** </sub>|<sub> **Prohibited**</sub>|
+|<sub> **Lock Type** </sub>|<sub> **Associated Permissions** </sub>|<sub> **Permitted acquisitions** </sub>|<sub> **Permitted downgrades** </sub>|<sub> **Prohibited**</sub>|
 |:--------------|:---------------------------|:---------------------------|:-------------------------|:----------------------------|
 |<sub>Read           </sub>|<sub>• Read (shared)               </sub>|<sub>• None → Read<br>• Read → Read (reentrant)</sub>|<sub>• Read → None               </sub>|<sub>• Read → Update<br>• Read → Write</sub>|
 |<sub>Update         </sub>|<sub>• Read (shared)               </sub>|<sub>• None → Update<br>• Update → Update (reentrant)<br>• Write → Update (reentrant)</sub>|<sub>• Update → None             </sub>|<sub>• Update → Read                </sub>|
